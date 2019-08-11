@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>Web Speech Api examples</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" type="text/css" media="screen" href="main.css" />
+</head>
+
+<body>
+  <section>
+      <body>
+          <div>
+           <a href="#" class="buttons" id="button1">RU-DE</a>
+           <a href="#" class="buttons" id="button2">DE-RU</a>
+           </div>
+     </body>
+
+    <form>
+      <!-- <input type="text" class="text"> -->
+      <div style="visibility: hidden">
+        <select>
+        </select>
+      </div>
+      <!-- <button id="play" type="submit">Play</button> -->
+    </form>
+  </section>
+  <hr>
+  <section class="speech-recognition-section">
+    <h1>Распознавание речи</h1>
+    <p>
+      Нажмите на иконку микрофона, и назовите любой цвет радуги, чтобы изменить фон
+    </p>
+    <div class="audio-record-animation__wrapper">
+      <div style="visibility: hidden;" class="audio-record-animation">
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    </div>
+    <div class="microphone-wrapper">
+      <img class="microphone__image" src="https://icon-library.net/images/microphone-png-icon/microphone-png-icon-24.jpg" width="50" height="50" alt="">
+      <p class="recognition-result">Результат: по умолчанию</p>
+    </div>
+  </section>
+</hr>
+<script type="text/javascript">
+  // Speech synthesis
+  const synth = window.speechSynthesis;
+
+  const inputForm = document.querySelector('form');
+  const inputTxt = document.querySelector('.text');
+  const voicesList = document.querySelector('select');
+
+  const pitch = document.querySelector('#pitch');
+  const pitchValue = document.querySelector('.value--pitch-value');
+  const rate = document.querySelector('#rate');
+  const rateValue = document.querySelector('.value--rate-value');
+
+  var transLang = '&lang=ru-de';
+  var recognitionLang = 'ru-DE';
+  var voiceLangEN = '';
+  var voiceLangRU = '';
+  var voiceLang = '';
+
+
+
+  let voices = [];
+
+  window.onbeforeunload = function() {
+    synth.cancel();
+  };
+
+  function populateVoiceList() {
+    voices = synth.getVoices();
+    const selectedIndex =
+      voicesList.selectedIndex < 0 ? 0 : voicesList.selectedIndex;
+    voicesList.innerHTML = '';
+  for (i = 0; i < voices.length; i++) {
+      const option = document.createElement('option');
+      option.textContent = voices[i].name + ' (' + voices[i].lang + ')';
+      
+      if (voices[i].lang === 'de-DE') {
+        voiceLangEN = voices[i];
+        console.log(voices[i])
+      }
+
+      if (voices[i].lang === 'ru-RU') {
+        voiceLangRU = voices[i];
+        console.log(voices[i])
+      }
+
+      option.setAttribute('data-lang', voices[i].lang);
+      option.setAttribute('data-name', voices[i].name);
+      voicesList.appendChild(option);
+
+    }
+    voicesList.selectedIndex = selectedIndex;  
+  }
+
+  populateVoiceList();
+  if (speechSynthesis.onvoiceschanged !== undefined) {
+    speechSynthesis.onvoiceschanged = populateVoiceList;
+  }
+
+  function speak(text) {
+    if (synth.speaking) {
+      console.error('speechSynthesis.speaking');
+      synth.cancel();
+      setTimeout(speak, 300);
+    } else if (text !== '') {
+      const utterThis = new SpeechSynthesisUtterance(text);
+      utterThis.onend = function(event) {
+        console.log('SpeechSynthesisUtterance.onend');
+      };
+      utterThis.onerror = function(event) {
+        console.error('SpeechSynthesisUtterance.onerror');
+      };
+      const selectedOption = voicesList.selectedOptions[0].getAttribute(
+        'data-name'
+      );
+      for (i = 0; i < voices.length; i++) {
+        if (voices[i].name === voiceLang.name) {
+          utterThis.voice = voices[i]; //Голос озвучки
+          console.log(voices[i]);
+        }
+      }
+
+      utterThis.onpause = function(event) {
+        const char = event.utterance.text.charAt(event.charIndex);
+        console.log(
+          'Speech paused at character ' +
+            event.charIndex +
+            ' of "' +
+            event.utterance.text +
+            '", which is "' +
+            char +
+            '".'
+        );
+      };
+
+      utterThis.pitch = 1; //Темп
+      utterThis.rate = 1;  //Диапозон
+      synth.speak(utterThis);
+    }
+  }
+
+  inputForm.onsubmit = function(event) {
+    event.preventDefault();
+
+    speak();
+
+    inputTxt.blur();
+  };
+
+
+
+  // Speech recognition
+  const SpeechRecognition =
+    window.SpeechRecognition || window.webkitSpeechRecognition;
+  const SpeechRecognitionEvent =
+    window.SpeechRecognitionEvent || window.webkitSpeechRecognitionEvent;
+
+  const recognition = new SpeechRecognition();
+  recognition.continuous = true;
+  recognition.lang = recognitionLang;
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+
+  const microphoneIcon = document.querySelector('.microphone__image');
+  const microphoneWrapper = document.querySelector('.microphone-wrapper');
+  const audioRecordAnimation = document.querySelector('.audio-record-animation');
+  const speechRecognitionSection = document.querySelector(
+    '.speech-recognition-section'
+  );
+  const recognitionTextResult = document.querySelector('.recognition-result');
+
+  function getColor(speechResult) {
+    for (let index = 0; index < colorsList.length; index += 1) {
+      if (speechResult.indexOf(colorsList[index]) !== -1) {
+        const colorKey = colorsList[index];
+        return [colorKey, colors[colorKey]];
+      }
+    }
+    return null;
+  }
+
+  microphoneIcon.onclick = function() {
+    recognition.start();
+  };
+
+  microphoneIcon.onclick = function() {
+    recognition.start();
+    console.log('Ready to receive a color command.');
+  };
+
+  recognition.onaudiostart = function() {
+    microphoneWrapper.style.visibility = 'hidden';
+    audioRecordAnimation.style.visibility = 'visible';
+  };
+
+  recognition.onresult = function(event) {
+    const last = event.results.length - 1;
+
+    recognitionTextResult.textContent = event.results[last][0].transcript;
+
+    console.log('Confidence: ' + event.results[0][0].confidence);
+
+      // Start of translating
+
+      var request = new XMLHttpRequest();
+      var text = recognitionTextResult.textContent;
+      var ru = document.querySelector(".ru")
+      var apiKey = 'trnsl.1.1.20190722T075006Z.372b48b7c69e6084.3aa8ab2f71109cb1fd01f896de526e33572e5ba2';
+      var format = 'format=plain&options=1'
+      var url = 'https://translate.yandex.net/api/v1.5/tr.json/translate?key=' + apiKey + '&text=' + text + transLang;
+      request.open("GET", url, true);
+      request.onload = function() {
+        if(request.status >= 200 && request.status < 400) {
+          var data = JSON.parse(request.responseText);
+          speak(data.text);
+        };
+      };
+      request.send();
+    
+    // end of translating
+  };
+
+  recognition.onspeechend = function() {
+    microphoneWrapper.style.visibility = 'visible';
+    audioRecordAnimation.style.visibility = 'hidden';
+  };
+
+  recognition.onnomatch = function(event) {
+    alert("I didn't recognise that color.");
+  };
+
+  recognition.onerror = function(event) {
+    alert(`Error occurred in recognition: ${event.error}`);
+  };
+  // end of speech recognition
+
+
+
+  //Выбор режима
+
+  var button1 = document.querySelector("#button1");
+  var button2 = document.querySelector("#button2");
+
+  button1.onload = function() {
+    transLang = '&lang=ru-de';
+    recognitionLang = 'ru-RU';
+    voiceLang = voiceLangEN;
+    console.log(transLang, recognitionLang, voiceLang)
+  };
+
+  button1.onclick = function() {
+    transLang = '&lang=ru-de';
+    recognitionLang = 'ru-RU';
+    voiceLang = voiceLangEN;
+    console.log(transLang, recognitionLang, voiceLang)
+  };
+
+
+  button2.onclick = function() {
+    transLang = '&lang=de-ru';
+    recognitionLang = 'de-DE';
+    voiceLang = voiceLangRU;
+    console.log(transLang, recognitionLang, voiceLang)
+  };
+
+  //Конец выбора
+
+</script>
+</body>
+
+</html>
